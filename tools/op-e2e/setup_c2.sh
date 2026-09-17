@@ -84,6 +84,15 @@ ANVIL_BLOCK_TIME="${ANVIL_BLOCK_TIME:-2}"
 # baseline and cannot be activated late (the engine's -38005 gate only admits
 # Isthmus+ payloads), so only Jovian (and later Karst) can be late.
 L2_JOVIAN_OFFSET="${L2_JOVIAN_OFFSET:-}"
+# 这条链的 EIP-1559 三元组：四处字面量的唯一来源（intent.toml、链上 setEIP1559Params、
+# rollup.json 同步、FISCO [op_eip1559]）——此前四处互相独立、漂移不可检测（review P1）。
+# withdraw 脚本的 eip1559-declared-vs-effective 预检随后用"活的 L2 链"对它做差分验证。
+# 定义在任何 step 之外：step_run 跳段/重跑时也必须已绑定（set -u 下曾以 unbound 爆在
+# step 2 中段）。
+C2_EIP1559_DENOMINATOR="${C2_EIP1559_DENOMINATOR:-8}"
+C2_EIP1559_ELASTICITY="${C2_EIP1559_ELASTICITY:-2}"
+C2_EIP1559_DENOMINATOR_CANYON="${C2_EIP1559_DENOMINATOR_CANYON:-250}"
+C2_EIP1559_PAIR=$(printf '0x%08x%08x' "$C2_EIP1559_DENOMINATOR" "$C2_EIP1559_ELASTICITY")
 PROOF_MATURITY_SECONDS="${PROOF_MATURITY_SECONDS:-12}"
 DISPUTE_FINALITY_SECONDS="${DISPUTE_FINALITY_SECONDS:-6}"
 FAULT_GAME_MAX_CLOCK="${FAULT_GAME_MAX_CLOCK:-45}"
@@ -164,9 +173,9 @@ useInterop = false
   l1FeeVaultRecipient = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   sequencerFeeVaultRecipient = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
   operatorFeeVaultRecipient = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-  eip1559DenominatorCanyon = 250
-  eip1559Denominator = 8
-  eip1559Elasticity = 2
+  eip1559DenominatorCanyon = ${C2_EIP1559_DENOMINATOR_CANYON}
+  eip1559Denominator = ${C2_EIP1559_DENOMINATOR}
+  eip1559Elasticity = ${C2_EIP1559_ELASTICITY}
   gasLimit = 30000000
   operatorFeeScalar = 0
   operatorFeeConstant = 0
@@ -233,17 +242,18 @@ EOF
   # 同步为非零值（op-node 启动时校验）。
   SYSTEM_CONFIG=$(python3 -c "import json; print(json.load(open('$C2/rollup.json'))['l1_system_config_address'])" 2>/dev/null) || true
   if [ -n "${SYSTEM_CONFIG:-}" ]; then
-    cast send "$SYSTEM_CONFIG" "setEIP1559Params(uint32,uint32)" 8 2 \
+    cast send "$SYSTEM_CONFIG" "setEIP1559Params(uint32,uint32)" \
+      "${C2_EIP1559_DENOMINATOR}" "${C2_EIP1559_ELASTICITY}" \
       --rpc-url http://127.0.0.1:$ANVIL_PORT \
-      --private-key $DEV0 > /dev/null || die "setEIP1559Params(8,2) 失败"
-    log "SystemConfig eip1559Params 已设为 8/2（根因 F 修复）"
+      --private-key $DEV0 > /dev/null || die "setEIP1559Params(${C2_EIP1559_DENOMINATOR},${C2_EIP1559_ELASTICITY}) 失败"
+    log "SystemConfig eip1559Params 已设为 ${C2_EIP1559_DENOMINATOR}/${C2_EIP1559_ELASTICITY} (根因 F 修复)"
   fi
   # 兜底：若 inspect 未反映链上最新值，强制同步（op-node 启动时校验该字段非零）
-  python3 - "$C2/rollup.json" <<'PYEOF'
+  python3 - "$C2/rollup.json" "$C2_EIP1559_PAIR" <<'PYEOF'
 import json, sys
-path = sys.argv[1]
+path, pair = sys.argv[1], sys.argv[2]
 r = json.load(open(path))
-r['genesis']['system_config']['eip1559Params'] = '0x0000000800000002'
+r['genesis']['system_config']['eip1559Params'] = pair
 json.dump(r, open(path, 'w'), indent=2)
 PYEOF
   "$C2/op-deployer" inspect genesis $L2_CHAIN --workdir "$C2" > "$C2/l2genesis.json" 2>/dev/null || \
@@ -351,9 +361,9 @@ fi)
 ; today; it is the CORRECT declaration for this chain (elasticity 2 differs from the legacy
 ; default 6), and it makes the e2e exercise the [op_eip1559] parse/validate/pin path.
 [op_eip1559]
-    elasticity=2
-    denominator=8
-    denominator_canyon=250
+    elasticity=${C2_EIP1559_ELASTICITY}
+    denominator=${C2_EIP1559_DENOMINATOR}
+    denominator_canyon=${C2_EIP1559_DENOMINATOR_CANYON}
 [features]
     feature_l2_ethereum_compat=true
 $(cat "$C2/eth_genesis_header.ini")

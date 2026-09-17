@@ -148,6 +148,20 @@ ed_byts = (len(ed) - 2) // 2
 jovian_abs = rollup.get("jovian_time")
 head_time = int(head.get("timestamp", "0x0"), 16)
 exp_jovian = ed_byts == 17 and ed[2:4] == "01"
+
+# 1559 声明-生效一致性（review P1）：CL 不重定价，"声明侧"（rollup.json 的 system_config，
+# 由链上 setEIP1559Params 同步）与"生效侧"（L2 头 extraData 的 8 字节参数对）之间本来没有
+# 任何验证者——只改四处字面量之一或 CL 没把参数带下来，此前都会全绿。这里硬比对。
+sc_pair = (rollup.get("genesis", {}).get("system_config", {}) or {}).get("eip1559Params")
+if isinstance(sc_pair, str) and len(sc_pair) == 18 and ed_byts >= 9:
+    b = bytes.fromhex(ed[2:])
+    d1, e1 = int(sc_pair[2:10], 16), int(sc_pair[10:18], 16)
+    d2, e2 = int.from_bytes(b[1:5], "big"), int.from_bytes(b[5:9], "big")
+    check("eip1559-declared-vs-effective", (d1, e1) == (d2, e2),
+          f"rollup system_config ({d1},{e1}) == L2 head extraData ({d2},{e2})")
+else:
+    check("eip1559-declared-vs-effective", False,
+          f"rollup system_config={sc_pair!r} extraData={ed} (cannot decode)")
 exp_holocene = ed_byts == 9 and ed[2:4] == "00"
 era_ok = True
 if isinstance(jovian_abs, int) and head_time < jovian_abs:
