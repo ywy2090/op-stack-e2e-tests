@@ -240,3 +240,16 @@ devnet_1875-2274_c38db356.json
 
 # Phase-3 enhanced corpus (Task 6): corrupt 12 + static 10 + invalid-tx 18 + chain 6 + legacy 2 = 48 vectors (idempotent; §4c item 3/12 excluded — loader 不可表达)
 regolith_eip1559_denominator8_basefee_step.json
+
+# S10 (batch-2 triage Selection, VECTOR carrier): L1 pricing fallback states -- l1fee_no_blob_data
+# (L2 past Ecotone while L1 is pre-Cancun: live l1BaseFee, zero blobBaseFee) and l1fee_zero_l1data
+# (no L1 data at all). Expected values are op-geth t8n output sealed into _op_expected; the
+# reference Go test (op-e2e TestEcotoneBeforeL1) is skipped upstream as legacy, so t8n is the oracle.
+canyon_l1fee_zero_l1data.json
+ecotone_l1fee_no_blob_data.json
+ecotone_l1fee_zero_l1data.json
+fjord_l1fee_no_blob_data.json
+fjord_l1fee_zero_l1data.json
+holocene_l1fee_no_blob_data.json
+holocene_l1fee_zero_l1data.json
+regolith_l1fee_zero_l1data.json

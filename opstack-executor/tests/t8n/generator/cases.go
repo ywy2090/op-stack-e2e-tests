@@ -546,7 +546,7 @@ type feeParams struct {
 	opFeeScalar       uint32
 	opFeeConstant     uint64
 	daScalar          uint16
-	isthmusLayout     bool   // force 176B Isthmus-selector calldata under a Jovian config (activation form)
+	isthmusLayout     bool     // force 176B Isthmus-selector calldata under a Jovian config (activation form)
 	overhead          *big.Int // Bedrock L1 fee overhead (slot 5)
 	scalar            *big.Int // Bedrock L1 fee scalar (slot 6)
 }
@@ -1844,6 +1844,50 @@ var caseSpecs = []caseSpec{
 			return c
 		}
 		panic(fmt.Sprintf("l1fee_edge: unhandled fork %q", fork))
+	}},
+
+	// S10 (batch-2 triage Selection, VECTOR carrier): the L1-pricing FALLBACK states -- the L2
+	// side is past a fork while the L1 side has not produced the matching data yet, so the fee
+	// inputs are absent. The reference face is op-e2e actions/upgrades/ecotone_fork_test.go:240
+	// TestEcotoneBeforeL1 (skipped upstream as legacy: "L1 contracts depend on Cancun"), so the
+	// oracle is the one every other vector uses -- op-geth's t8n on these inputs, sealed into
+	// _op_expected by --golden-output.
+	//
+	// Two states, because "no L1 data" is not one thing:
+	//   l1fee_no_blob_data  -- l1BaseFee live, blobBaseFee ZERO: L2 past Ecotone while L1 is
+	//                          pre-Cancun (the reference test's literal scenario). The blob term
+	//                          must drop out while the base-fee term prices normally, so the L1
+	//                          fee stays non-zero and formula-specific (Ecotone 0x108cc64200 vs
+	//                          Fjord/Holocene 0xf49e12000 on the shared 4-byte calldata).
+	//   l1fee_zero_l1data   -- BOTH zero: no L1 data at all. Every family multiplies through
+	//                          l1BaseFee (Bedrock included), so the fee collapses to 0 on all of
+	//                          them; what still gets pinned is that the formula stays TOTAL --
+	//                          no revert, no garbage from an unset slot read -- and that the
+	//                          gas-used terms keep matching op-geth (0xef8 Bedrock / 0x6c4
+	//                          Ecotone / 0x640 Fjord+ on this calldata).
+	// Paired against l1fee_edge (same feeParams shape, non-zero base fees) the two families
+	// isolate the absent-input path from the formula itself.
+	{"l1fee_no_blob_data", []string{"ecotone", "fjord", "holocene"}, func(fork string) inputCase {
+		fp := defaultFeeParams()
+		fp.blobBaseFee = big.NewInt(0)
+		c := caseFrame(fork, "l1fee_no_blob_data",
+			"Ecotone+ with L1 pre-Cancun: live l1BaseFee but zero blobBaseFee -- the blob term must drop out while the base-fee term prices normally",
+			fp, 10_000_000)
+		fund(&c, 1, eth(100))
+		c.Transactions = append(c.Transactions, transferTx(1, 0, recA, eth(1), 100_000, []byte{1, 2, 3, 4}))
+		return c
+	}},
+
+	{"l1fee_zero_l1data", []string{"regolith", "canyon", "ecotone", "fjord", "holocene"}, func(fork string) inputCase {
+		fp := defaultFeeParams()
+		fp.l1BaseFee = big.NewInt(0)
+		fp.blobBaseFee = big.NewInt(0)
+		c := caseFrame(fork, "l1fee_zero_l1data",
+			"L1 pricing fallback: zero l1BaseFee AND blobBaseFee -- the formula must stay total (fee 0, gas-used terms still fork-specific) instead of reverting",
+			fp, 10_000_000)
+		fund(&c, 1, eth(100))
+		c.Transactions = append(c.Transactions, transferTx(1, 0, recA, eth(1), 100_000, []byte{1, 2, 3, 4}))
+		return c
 	}},
 
 	{"contract_create", []string{"fjord"}, func(fork string) inputCase {

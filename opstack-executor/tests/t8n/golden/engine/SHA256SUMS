@@ -186,3 +186,13 @@ a21bd434b0a0a02e1982f7f04c4932167ba44f88739ab978e5baa3bb9e97ce0b  canyon_boundar
 
 # Appended by generator/regen.sh (append-only bookkeeping, F-COV-1): golden files generated but not previously summed. Existing lines are never rewritten -- a genuine regeneration refreshes them by hand in the same commit.
 9ed3dea64bc47a3ad5ecb9bea7cea6f2f229c5a40bea73124920acd1e84a8c87  regolith_eip1559_denominator8_basefee_step.golden.json
+
+# Appended by generator/regen.sh (append-only bookkeeping, F-COV-1): golden files generated but not previously summed. Existing lines are never rewritten -- a genuine regeneration refreshes them by hand in the same commit.
+2b38af51b30b05ebe24102d8653624c9cd2946249c98888525fa85d48432b9a3  canyon_l1fee_zero_l1data.golden.json
+a0c7c5474507ab7e49fc48a08b282a25a51ff279f4163c9844867a7463b65ada  ecotone_l1fee_no_blob_data.golden.json
+dfe6ca403f53bf9175f520f163e591c710a0042914b046dd9620bd3cf838d53c  ecotone_l1fee_zero_l1data.golden.json
+96f2e232acfaab49c6b7409f558eab72e540bf46cb42e345e35f6a332160000f  fjord_l1fee_no_blob_data.golden.json
+a0ab23a3e1d9607a700a50fede476aad5996bc886b348408a398cfb4377ff91c  fjord_l1fee_zero_l1data.golden.json
+d7162c9e3da3e575c6bd6d97e6eb29340e89d1dfef61cea7cdd0bdad4e9333a1  holocene_l1fee_no_blob_data.golden.json
+d48d723b6994224dc64cc3167e0fc745125b437ca8f09d3ce7cfe388c5d27782  holocene_l1fee_zero_l1data.golden.json
+8bbb309320b6d8939aec267696416a2c9b3bd9d7645c2ebac0f3d7eaf005ace8  regolith_l1fee_zero_l1data.golden.json

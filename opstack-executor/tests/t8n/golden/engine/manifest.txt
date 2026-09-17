@@ -140,3 +140,13 @@ regolith_transfer_basic.golden.json
 
 # Appended by generator/regen.sh (append-only bookkeeping, F-COV-1): goldens from batches after the original 63-set (precompile matrix, fork boundary/activation cells, observers, legacy/l1block/withdraw, 7702 skips, ...). Same set as cases/*.in.json, exactly like the 63-set above.
 regolith_eip1559_denominator8_basefee_step.golden.json
+
+# Appended by generator/regen.sh (append-only bookkeeping, F-COV-1): goldens from batches after the original 63-set (precompile matrix, fork boundary/activation cells, observers, legacy/l1block/withdraw, 7702 skips, ...). Same set as cases/*.in.json, exactly like the 63-set above.
+canyon_l1fee_zero_l1data.golden.json
+ecotone_l1fee_no_blob_data.golden.json
+ecotone_l1fee_zero_l1data.golden.json
+fjord_l1fee_no_blob_data.golden.json
+fjord_l1fee_zero_l1data.golden.json
+holocene_l1fee_no_blob_data.golden.json
+holocene_l1fee_zero_l1data.golden.json
+regolith_l1fee_zero_l1data.golden.json
