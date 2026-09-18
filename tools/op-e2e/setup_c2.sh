@@ -246,7 +246,17 @@ EOF
       "${C2_EIP1559_DENOMINATOR}" "${C2_EIP1559_ELASTICITY}" \
       --rpc-url http://127.0.0.1:$ANVIL_PORT \
       --private-key $DEV0 > /dev/null || die "setEIP1559Params(${C2_EIP1559_DENOMINATOR},${C2_EIP1559_ELASTICITY}) 失败"
-    log "SystemConfig eip1559Params 已设为 ${C2_EIP1559_DENOMINATOR}/${C2_EIP1559_ELASTICITY} (根因 F 修复)"
+    # 回读链上现值：发送成功 != 生效。SystemConfig.sol:167/171 是两个 uint32 public
+    # 变量，自动 getter 可直接调；不一致即 die（此前是盲发，唯一证据要等到
+    # withdraw 预检的 eip1559-declared-vs-effective 走完活的 L2 链才有）。
+    readback_den=$(cast call "$SYSTEM_CONFIG" "eip1559Denominator()(uint32)" \
+      --rpc-url http://127.0.0.1:$ANVIL_PORT) || die "eip1559Denominator() 回读失败"
+    readback_ela=$(cast call "$SYSTEM_CONFIG" "eip1559Elasticity()(uint32)" \
+      --rpc-url http://127.0.0.1:$ANVIL_PORT) || die "eip1559Elasticity() 回读失败"
+    [ "${readback_den}" = "${C2_EIP1559_DENOMINATOR}" ] && \
+      [ "${readback_ela}" = "${C2_EIP1559_ELASTICITY}" ] || \
+      die "SystemConfig 回读 (${readback_den},${readback_ela}) != 声明 (${C2_EIP1559_DENOMINATOR},${C2_EIP1559_ELASTICITY})"
+    log "SystemConfig eip1559Params 已设为 ${C2_EIP1559_DENOMINATOR}/${C2_EIP1559_ELASTICITY}，回读一致（根因 F 修复闭环）"
   fi
   # 兜底：若 inspect 未反映链上最新值，强制同步（op-node 启动时校验该字段非零）
   python3 - "$C2/rollup.json" "$C2_EIP1559_PAIR" <<'PYEOF'
